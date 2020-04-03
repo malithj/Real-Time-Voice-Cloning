@@ -7,9 +7,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.quantization
 
 _model = None # type: SpeakerEncoder
 _device = None # type: torch.device
+_quantized = True
 
 
 def load_model(weights_fpath: Path, device=None):
@@ -29,9 +32,16 @@ def load_model(weights_fpath: Path, device=None):
         _device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     elif isinstance(device, str):
         _device = torch.device(device)
-    _model = SpeakerEncoder(_device, torch.device("cpu"))
     checkpoint = torch.load(weights_fpath)
-    _model.load_state_dict(checkpoint["model_state"])
+    if 'quantized' in checkpoint and checkpoint['quantized'] == True:
+        _quantized = checkpoint['quantized']
+        _device = torch.device("cpu")
+        _model = SpeakerEncoder(_device, torch.device("cpu"))
+        _model = torch.quantization.quantize_dynamic(_model, {nn.LSTM, nn.Linear}, dtype=torch.qint8)
+        _model.load_state_dict(checkpoint["model_state"])
+    else:
+        _model = SpeakerEncoder(_device, torch.device("cpu"))
+        _model.load_state_dict(checkpoint["model_state"])
     _model.eval()
     print("Loaded encoder \"%s\" trained to step %d" % (weights_fpath.name, checkpoint["step"]))
     

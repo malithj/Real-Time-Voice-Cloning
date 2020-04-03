@@ -49,6 +49,7 @@ class Toolbox:
         self.synthesizer = None # type: Synthesizer
        
         self.output_dir = 'output'
+        self.output_counter = 0
         if not os.path.exists(self.output_dir):
             try:
                 os.makedirs(self.output_dir)
@@ -220,7 +221,8 @@ class Toolbox:
 
         # Save it
         wav = wav / np.abs(wav).max() * 0.97
-        write("{0:}/{1:}".format(self.output_dir, 'vocoded-mimic.wav'), Synthesizer.sample_rate, wav)
+        write("{0:}/vocoded-mimic-{1:}.wav".format(self.output_dir, self.output_counter), Synthesizer.sample_rate, wav)
+        self.output_counter += 1
       
         # Play it
         self.ui.play(wav, Synthesizer.sample_rate)
